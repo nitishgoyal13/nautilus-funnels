@@ -18,6 +18,14 @@
         <junit.version>4.12</junit.version>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>clojars</id>
+            <name>Clojars repository</name>
+            <url>https://clojars.org/repo</url>
+        </repository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -58,8 +66,20 @@
             <version>2.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.platform</groupId>
+            <artifactId>utils</artifactId>
+        </dependency>
 
     </dependencies>
+
+    <developers>
+        <developer>
+            <id>nitishgoyal13</id>
+            <name>Nitish Goyal</name>
+            <email>nitishgoyal13@gmail.com</email>
+        </developer>
+    </developers>
 
     <build>
         <plugins>
@@ -179,7 +199,7 @@
                     <plugin>
                         <groupId>com.spotify</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.3.5</version>
+                        <version>0.4.10</version>
                         <configuration>
                             <imageName>nautilus-funnels:${project.version}</imageName>
                             <dockerDirectory>${project.basedir}</dockerDirectory>

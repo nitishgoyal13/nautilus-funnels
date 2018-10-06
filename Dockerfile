@@ -1,18 +1,10 @@
-FROM ubuntu:14.04
+FROM docker.phonepe.com:5000/pp-ops-xenial:0.1
 
+EXPOSE 17000
+EXPOSE 17001
+EXPOSE 5701
 
-RUN \
-  apt-get install -y --no-install-recommends software-properties-common \
-  && add-apt-repository ppa:webupd8team/java \
-  && apt-get update \
-  && echo debconf shared/accepted-oracle-license-v1-1 select true |  debconf-set-selections \
-  && echo debconf shared/accepted-oracle-license-v1-1 seen true |  debconf-set-selections \
-  && apt-get install -y --no-install-recommends oracle-java8-installer
-
-EXPOSE 8080
-EXPOSE 8081
-
-VOLUME /var/log/entitystore
+VOLUME /var/log/nautilus
 
 ADD config/docker/docker.yml dev-config.yml
 ADD target/nautilus-funnels*.jar server.jar
