@@ -11,3 +11,7 @@ This project can be run on docker by following the steps:
 mvn clean package -Pdocker
 docker-compose up
 ```
+````
+For setting this project in local, run
+python generate-events.py --server localhost:8080 --count n
+This will ingest data into your elasticsearch server for testing purpose
