@@ -16,6 +16,7 @@
 
 package io.appform.nautilus.funnel.utils;
 
+import com.collections.CollectionUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import io.appform.nautilus.funnel.elasticsearch.ESConfiguration;
@@ -128,7 +129,7 @@ public class ESUtils {
 
     private static BoolQueryBuilder handle(FilteredRequest filteredRequest) throws Exception {
         BoolQueryBuilder queryBuilder = new ESFilterGenerator().build(filteredRequest.getSessionFilters());
-        if(null != filteredRequest.getStateFilters() || !filteredRequest.getStateFilters().isEmpty()) {
+        if(CollectionUtils.isEmpty(filteredRequest.getStateFilters())) {
             queryBuilder.filter(
                     QueryBuilders.hasChildQuery(TypeUtils.typeName(StateTransition.class),
                             new ESFilterGenerator().build(filteredRequest.getStateFilters())));

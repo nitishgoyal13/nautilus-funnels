@@ -59,28 +59,22 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
     @Override
     public Graph build(final String tenant, Context analyticsContext, GraphRequest graphRequest) throws Exception {
         try {
-            SearchRequestBuilder sessionSummary = analyticsContext
-                    .getEsConnection()
+            SearchRequestBuilder sessionSummary = analyticsContext.getEsConnection()
                     .client()
                     .prepareSearch(ESUtils.getAllIndicesForTenant(tenant)) //TODO::SELECT RELEVANT INDICES ONLY
-                    .setQuery(
-                            QueryBuilders.boolQuery()
-                                    .filter(QueryBuilders.hasParentQuery(
-                                            TypeUtils.typeName(Session.class),
-                                            ESUtils.query(graphRequest))))
+                    .setQuery(QueryBuilders.boolQuery()
+                                      .filter(QueryBuilders.hasParentQuery(TypeUtils.typeName(Session.class),
+                                                                           ESUtils.query(graphRequest)
+                                                                          )))
                     .setTypes(TypeUtils.typeName(StateTransition.class))
                     .setFetchSource(false)
                     .setSize(0)
                     .setIndicesOptions(IndicesOptions.lenientExpandOpen())
-                    .addAggregation(AggregationBuilders
-                            .terms("from_nodes")
-                            .field("from")
-                            .subAggregation(
-                                    AggregationBuilders
-                                            .terms("to_nodes")
-                                            .field("to")
-                                            .size(0)
-                            ));
+                    .addAggregation(AggregationBuilders.terms("from_nodes")
+                                            .field("from")
+                                            .subAggregation(AggregationBuilders.terms("to_nodes")
+                                                                    .field("to")
+                                                                    .size(0)));
             SearchRequestBuilder stateTransitionSummary = analyticsContext.getEsConnection()
                     .client()
                     .prepareSearch(ESUtils.getAllIndicesForTenant(tenant))
@@ -89,11 +83,9 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
                     .setFetchSource(false)
                     .setSize(0)
                     .setIndicesOptions(IndicesOptions.lenientExpandOpen())
-                    .addAggregation(AggregationBuilders
-                            .terms("paths")
-                            .field("normalizedPath")
-                            .size(0)
-                    );
+                    .addAggregation(AggregationBuilders.terms("paths")
+                                            .field("normalizedPath")
+                                            .size(0));
             log.debug("Session query: {}", sessionSummary);
             log.debug("State Query: {}", stateTransitionSummary);
             MultiSearchResponse multiSearchResponse = analyticsContext.getEsConnection()
@@ -113,21 +105,23 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
                 Aggregations aggregations = edgeGroupingResponse.getAggregations();
                 if(null == aggregations) {
                     return Graph.builder()
-                                .build();
+                            .build();
                 }
                 Terms terms = aggregations.get("from_nodes");
 
-                for (Terms.Bucket fromBucket : terms.getBuckets()) {
-                    final String fromNodeName = PathUtils.transformBack(fromBucket.getKey().toString());
-                    Terms toTerms = fromBucket.getAggregations().get("to_nodes");
-                    for (Terms.Bucket toBucket : toTerms.getBuckets()) {
-                        final String toNodeName = PathUtils.transformBack(toBucket.getKey().toString());
-                        edges.add(GraphEdge
-                                .builder()
-                                .from(fromNodeName)
-                                .to(toNodeName)
-                                .value(toBucket.getDocCount())
-                                .build());
+                for(Terms.Bucket fromBucket : terms.getBuckets()) {
+                    final String fromNodeName = PathUtils.transformBack(fromBucket.getKey()
+                                                                                .toString());
+                    Terms toTerms = fromBucket.getAggregations()
+                            .get("to_nodes");
+                    for(Terms.Bucket toBucket : toTerms.getBuckets()) {
+                        final String toNodeName = PathUtils.transformBack(toBucket.getKey()
+                                                                                  .toString());
+                        edges.add(GraphEdge.builder()
+                                          .from(fromNodeName)
+                                          .to(toNodeName)
+                                          .value(toBucket.getDocCount())
+                                          .build());
                     }
                 }
             }
@@ -135,40 +129,48 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
             Map<String, GraphNode> vertices = Maps.newHashMap();
             int nodeCounter = 0;
             ImmutableList.Builder<FlatPath> flatPathListBuilder = ImmutableList.builder();
-            {
-                SearchResponse response = multiSearchResponse.getResponses()[1].getResponse();
-                Aggregations aggregations = response.getAggregations();
-                Terms terms = aggregations.get("paths");
-                for (Terms.Bucket buckets : terms.getBuckets()) {
-                    final String flatPath = PathUtils.transformBack(buckets.getKey().toString());
-                    final long count = buckets.getDocCount();
-                    final String pathNodes[] = flatPath.split(Constants.PATH_STATE_SEPARATOR);
-                    flatPathListBuilder.add(FlatPath.builder().path(flatPath).count(count).build());
-                    for (final String pathNode : pathNodes) {
-                        final String original = PathUtils.transformBack(pathNode);
-                        if (!vertices.containsKey(original)) {
-                            vertices.put(pathNode, GraphNode.builder().id(nodeCounter++).name(original).build());
-                        }
 
+            SearchResponse response = multiSearchResponse.getResponses()[1].getResponse();
+            Aggregations aggregations = response.getAggregations();
+            Terms terms = aggregations.get("paths");
+            for(Terms.Bucket buckets : terms.getBuckets()) {
+                final String flatPath = PathUtils.transformBack(buckets.getKey()
+                                                                        .toString());
+                final long count = buckets.getDocCount();
+                final String pathNodes[] = flatPath.split(Constants.PATH_STATE_SEPARATOR);
+                flatPathListBuilder.add(FlatPath.builder()
+                                                .path(flatPath)
+                                                .count(count)
+                                                .build());
+                for(final String pathNode : pathNodes) {
+                    final String original = PathUtils.transformBack(pathNode);
+                    if(!vertices.containsKey(original)) {
+                        vertices.put(pathNode, GraphNode.builder()
+                                .id(nodeCounter++)
+                                .name(original)
+                                .build());
                     }
+
                 }
             }
+
 
             ImmutableList<FlatPath> paths = flatPathListBuilder.build();
 
 
             PathUtils.rankNodes(paths.stream()
-                    .map(FlatPath::getPath)
-                    .collect(Collectors.toCollection(ArrayList::new)))
-                    .entrySet().stream().forEach(rank -> {
+                                        .map(FlatPath::getPath)
+                                        .collect(Collectors.toCollection(ArrayList::new)))
+                    .entrySet()
+                    .stream()
+                    .forEach(rank -> {
                         String nodeName = rank.getKey();
                         int nodeRank = rank.getValue();
-                        if (vertices.containsKey(nodeName)) {
+                        if(vertices.containsKey(nodeName)) {
                             GraphNode node = vertices.get(nodeName);
                             node.setRank(nodeRank);
                         }
-                    }
-            );
+                    });
 
             ArrayList<GraphNode> verticesList = new ArrayList<>(vertices.values());
             verticesList.sort((GraphNode lhs, GraphNode rhs) -> Integer.compare(lhs.getId(), rhs.getId()));
@@ -179,8 +181,7 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
                     .build();
         } catch (Exception e) {
             log.error("Error running grouping: ", e);
-            throw new NautilusException(
-                    ErrorMessageTable.ErrorCode.ANALYTICS_ERROR, e);
+            throw new NautilusException(ErrorMessageTable.ErrorCode.ANALYTICS_ERROR, e);
         }
     }
 
@@ -195,35 +196,38 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
                     .setFetchSource(false)
                     .setSize(0)
                     .setIndicesOptions(IndicesOptions.lenientExpandOpen())
-                    .addAggregation(AggregationBuilders
-                            .terms("paths")
-                            .field("normalizedPath")
-                            .size(0)
-                    );
+                    .addAggregation(AggregationBuilders.terms("paths")
+                                            .field("normalizedPath")
+                                            .size(0));
             log.debug("State Query: {}", stateTransitionSummary);
-            SearchResponse response = stateTransitionSummary
-                    .execute()
+            SearchResponse response = stateTransitionSummary.execute()
                     .actionGet();
 
             ImmutableList.Builder<FlatPath> flatPathListBuilder = ImmutableList.builder();
             LinkedHashMap<String, GraphNode> vertices = Maps.newLinkedHashMap();
 
-            {
-                Aggregations aggregations = response.getAggregations();
-                Terms terms = aggregations.get("paths");
-                int nodeCounter = 0;
-                for (Terms.Bucket buckets : terms.getBuckets()) {
-                    final String flatPath = PathUtils.transformBack(buckets.getKey().toString());
-                    final long count = buckets.getDocCount();
-                    final String pathNodes[] = flatPath.split(Constants.PATH_STATE_SEPARATOR);
-                    flatPathListBuilder.add(FlatPath.builder().path(flatPath).count(count).build());
-                    for (final String pathNode : pathNodes) {
-                        final String original = PathUtils.transformBack(pathNode);
-                        if (!vertices.containsKey(original)) {
-                            vertices.put(pathNode, GraphNode.builder().id(nodeCounter++).name(original).build());
-                        }
 
+            Aggregations aggregations = response.getAggregations();
+            Terms terms = aggregations.get("paths");
+            int nodeCounter = 0;
+            for(Terms.Bucket buckets : terms.getBuckets()) {
+                final String flatPath = PathUtils.transformBack(buckets.getKey()
+                                                                        .toString());
+                final long count = buckets.getDocCount();
+                final String pathNodes[] = flatPath.split(Constants.PATH_STATE_SEPARATOR);
+                flatPathListBuilder.add(FlatPath.builder()
+                                                .path(flatPath)
+                                                .count(count)
+                                                .build());
+                for(final String pathNode : pathNodes) {
+                    final String original = PathUtils.transformBack(pathNode);
+                    if(!vertices.containsKey(original)) {
+                        vertices.put(pathNode, GraphNode.builder()
+                                .id(nodeCounter++)
+                                .name(original)
+                                .build());
                     }
+
                 }
             }
 
@@ -236,8 +240,7 @@ public class ESEdgeBasedGraphBuilder implements GraphBuilder {
                     .build();
         } catch (Exception e) {
             log.error("Error calculating paths: ", e);
-            throw new NautilusException(
-                    ErrorMessageTable.ErrorCode.ANALYTICS_ERROR, e);
+            throw new NautilusException(ErrorMessageTable.ErrorCode.ANALYTICS_ERROR, e);
         }
     }
 }
