@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.appform.nautilus.funnel.common.ErrorMessageTable;
 import io.appform.nautilus.funnel.common.NautilusException;
-import io.appform.nautilus.funnel.elasticsearch.ESConfiguration;
 import io.appform.nautilus.funnel.elasticsearch.ESConnection;
 import io.appform.nautilus.funnel.model.core.TemporalTypedEntity;
 import io.appform.nautilus.funnel.persistence.EntityIDGenerator;
@@ -47,14 +46,10 @@ import java.util.Optional;
 @Slf4j
 public class ESTemporalTypedEntityStore implements TemporalTypedEntityStore {
     private final ObjectMapper mapper;
-    private final ESConfiguration esConfiguration;
     private final ESConnection esConnection;
 
-    public ESTemporalTypedEntityStore(ObjectMapper mapper,
-                                      ESConfiguration esConfiguration,
-                                      ESConnection esConnection) {
+    public ESTemporalTypedEntityStore(ObjectMapper mapper, ESConnection esConnection) {
         this.mapper = mapper;
-        this.esConfiguration = esConfiguration;
         this.esConnection = esConnection;
     }
 

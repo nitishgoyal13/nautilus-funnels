@@ -51,7 +51,6 @@ public class FunnelServerApp extends Application<FunnelServerConfiguration> {
         SessionActivityHandler sessionActivityHandler = new SessionActivityHandler(
                                                             new ESTemporalTypedEntityStore(
                                                                         objectMapper,
-                                                                        funnelServerConfiguration.getElasticsearch(),
                                                                         esConnection));
 
         environment.jersey().register(new ActivityResource(sessionActivityHandler));

@@ -27,18 +27,16 @@ import static org.mockito.Mockito.mock;
 public class ActivityResourceTest {
 
     private ActivityResource activityResource;
-    private ObjectMapper mapper;
     private SessionActivityHandler activityHandler;
 
     @Before
-    public void setup() throws Exception {
+    public void setup()  {
         activityHandler = mock(SessionActivityHandler.class);
-        mapper = new ObjectMapper();
         activityResource = new ActivityResource(activityHandler);
     }
 
     @Test
-    public void shouldSave() throws Exception {
+    public void shouldSave() {
         SessionActivity homeActivity = new SessionActivity();
         homeActivity.setState("home");
         homeActivity.setTimestamp(System.currentTimeMillis());
